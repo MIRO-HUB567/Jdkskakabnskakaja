@@ -1,0 +1,888 @@
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local HttpService = game:GetService("HttpService")
+local TweenService = game:GetService("TweenService")
+
+local Player = Players.LocalPlayer
+local Env = getgenv and getgenv() or _G
+
+local OriginalRequest = nil
+local Logs = {}
+local SecurityLogs = {}
+local LogCount = 0
+local SecurityCount = 0
+local SecurityUnread = 0
+local SecurityViewing = false
+local HookWatchdog = true
+
+local ANTI_IP_LOG = true
+local REQUESTS_LOG = true
+local INSPECT_RESPONSES = true
+
+local suspiciousPatterns = {
+	"api.ipify.org",
+	"api64.ipify.org",
+	"ipify.org",
+	"ipinfo.io",
+	"ipinfo.app",
+	"icanhazip.com",
+	"ifconfig.me",
+	"ifconfig.co",
+	"ifconfig.is",
+	"ifconfig.io",
+	"checkip.amazonaws.com",
+	"checkip.dyndns.org",
+	"checkip.spdyn.de",
+	"ident.me",
+	"v4.ident.me",
+	"v6.ident.me",
+	"myexternalip.com",
+	"ip-api.com",
+	"ip-api.io",
+	"ipapi.is",
+	"ipapi.co",
+	"ipapi.com",
+	"ip.app",
+	"ipwho.is",
+	"ipwhois.io",
+	"ipwhois.app",
+	"ipgetter.com",
+	"ipcontext.info",
+	"ipaddress.to",
+	"ipaddress.ai",
+	"ipget.app",
+	"ipecho.net",
+	"ipogre.com",
+	"smart-ip.net",
+	"getpublicip.com",
+	"freeipapi.com",
+	"ippubblico.org",
+	"whatismyip.com",
+	"whatismyipaddress.monster",
+	"wtfismyip.com",
+	"curlmyip.net",
+	"ip.nnev.de",
+	"v4.tnedi.me",
+	"v6.tnedi.me",
+	"tnedi.me",
+	"iplocation.net",
+	"ipstack.com",
+	"ipdata.co",
+	"ipgeolocation.io",
+	"ipgeo.com",
+	"ipquery.io",
+	"ipfind.io",
+	"iplocate.io",
+	"ipfinder.io",
+	"ipqualityscore.com",
+	"ipregistry.co",
+	"ipbase.com",
+	"ip2location.com",
+	"ip2location.io",
+	"ip2proxy.com",
+	"ipinfodb.com",
+	"db-ip.com",
+	"abstractapi.com",
+	"ipnify.com",
+	"hackmyip.com",
+	"ipasis.com",
+	"ipto.to",
+	"whatsmy.fyi",
+	"ip.guide",
+	"ipleak.net",
+	"cloudflare.com/cdn-cgi/trace",
+	"discord.com/api/webhooks",
+	"discordapp.com/api/webhooks",
+	"hooks.slack.com",
+	"webhook.site",
+	"requestbin.com",
+	"pipedream.net"
+}
+
+local setclip = setclipboard or toclipboard
+
+if typeof(Env.request) == "function" then
+	OriginalRequest = Env.request
+elseif typeof(request) == "function" then
+	OriginalRequest = request
+end
+
+if not OriginalRequest then
+	warn("request function not found")
+	return
+end
+
+local Gui = Instance.new("ScreenGui")
+Gui.Name = "SkidSpy"
+Gui.ResetOnSpawn = false
+Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+Gui.Parent = Player:WaitForChild("PlayerGui")
+
+local Main = Instance.new("Frame")
+Main.Size = UDim2.new(0.9, 0, 0.7, 0)
+Main.Position = UDim2.new(0.5, 0, 0.5, 0)
+Main.AnchorPoint = Vector2.new(0.5, 0.5)
+Main.BackgroundColor3 = Color3.fromRGB(24, 24, 24)
+Main.BackgroundTransparency = 0.08
+Main.BorderSizePixel = 1
+Main.BorderColor3 = Color3.fromRGB(75, 75, 75)
+Main.ClipsDescendants = true
+Main.Parent = Gui
+
+local SizeConstraint = Instance.new("UISizeConstraint")
+SizeConstraint.MinSize = Vector2.new(310, 270)
+SizeConstraint.MaxSize = Vector2.new(640, 430)
+SizeConstraint.Parent = Main
+
+local Top = Instance.new("Frame")
+Top.Size = UDim2.new(1, 0, 0, 30)
+Top.BackgroundColor3 = Color3.fromRGB(32, 32, 32)
+Top.BackgroundTransparency = 0.05
+Top.BorderSizePixel = 0
+Top.Parent = Main
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -150, 1, 0)
+Title.Position = UDim2.new(0, 10, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "Skid Spy (HTTP)"
+Title.Font = Enum.Font.Code
+Title.TextSize = 14
+Title.TextColor3 = Color3.fromRGB(215, 215, 215)
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = Top
+
+local AntiButton = Instance.new("TextButton")
+AntiButton.Size = UDim2.new(0, 100, 0, 22)
+AntiButton.Position = UDim2.new(1, -134, 0, 4)
+AntiButton.BackgroundColor3 = Color3.fromRGB(48, 48, 48)
+AntiButton.BackgroundTransparency = 0.1
+AntiButton.BorderSizePixel = 1
+AntiButton.BorderColor3 = Color3.fromRGB(75, 75, 75)
+AntiButton.Font = Enum.Font.Code
+AntiButton.TextSize = 10
+AntiButton.TextColor3 = Color3.fromRGB(205, 205, 205)
+AntiButton.Parent = Top
+
+local Close = Instance.new("TextButton")
+Close.Size = UDim2.new(0, 26, 0, 22)
+Close.Position = UDim2.new(1, -30, 0, 4)
+Close.BackgroundColor3 = Color3.fromRGB(110, 45, 45)
+Close.BackgroundTransparency = 0.15
+Close.BorderSizePixel = 1
+Close.BorderColor3 = Color3.fromRGB(145, 65, 65)
+Close.Text = "×"
+Close.Font = Enum.Font.Code
+Close.TextSize = 16
+Close.TextColor3 = Color3.fromRGB(235, 235, 235)
+Close.Parent = Top
+
+local Left = Instance.new("ScrollingFrame")
+Left.Size = UDim2.new(0.38, -2, 1, -30)
+Left.Position = UDim2.new(0, 0, 0, 30)
+Left.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+Left.BackgroundTransparency = 0.1
+Left.BorderSizePixel = 0
+Left.ScrollBarThickness = 4
+Left.ScrollBarImageColor3 = Color3.fromRGB(90, 90, 90)
+Left.CanvasSize = UDim2.new()
+Left.Parent = Main
+
+local LeftPadding = Instance.new("UIPadding")
+LeftPadding.PaddingTop = UDim.new(0, 5)
+LeftPadding.PaddingBottom = UDim.new(0, 5)
+LeftPadding.PaddingLeft = UDim.new(0, 5)
+LeftPadding.PaddingRight = UDim.new(0, 5)
+LeftPadding.Parent = Left
+
+local LeftLayout = Instance.new("UIListLayout")
+LeftLayout.Padding = UDim.new(0, 3)
+LeftLayout.Parent = Left
+
+local Right = Instance.new("ScrollingFrame")
+Right.Size = UDim2.new(0.62, -2, 1, -30)
+Right.Position = UDim2.new(0.38, 2, 0, 30)
+Right.BackgroundColor3 = Color3.fromRGB(27, 27, 27)
+Right.BackgroundTransparency = 0.08
+Right.BorderSizePixel = 0
+Right.ScrollBarThickness = 4
+Right.ScrollBarImageColor3 = Color3.fromRGB(90, 90, 90)
+Right.CanvasSize = UDim2.new()
+Right.Parent = Main
+
+local RightPadding = Instance.new("UIPadding")
+RightPadding.PaddingTop = UDim.new(0, 7)
+RightPadding.PaddingBottom = UDim.new(0, 7)
+RightPadding.PaddingLeft = UDim.new(0, 7)
+RightPadding.PaddingRight = UDim.new(0, 7)
+RightPadding.Parent = Right
+
+local RightLayout = Instance.new("UIListLayout")
+RightLayout.Padding = UDim.new(0, 6)
+RightLayout.Parent = Right
+
+local SecurityPanel = Instance.new("Frame")
+SecurityPanel.Size = UDim2.new(1, 0, 0, 58)
+SecurityPanel.BackgroundColor3 = Color3.fromRGB(34, 34, 34)
+SecurityPanel.BackgroundTransparency = 0.05
+SecurityPanel.BorderSizePixel = 1
+SecurityPanel.BorderColor3 = Color3.fromRGB(65, 65, 65)
+SecurityPanel.Parent = Left
+
+local SecurityTitle = Instance.new("TextLabel")
+SecurityTitle.Size = UDim2.new(1, -90, 0, 20)
+SecurityTitle.Position = UDim2.new(0, 5, 0, 3)
+SecurityTitle.BackgroundTransparency = 1
+SecurityTitle.Text = "ANTI IP LOG"
+SecurityTitle.Font = Enum.Font.Code
+SecurityTitle.TextSize = 11
+SecurityTitle.TextColor3 = Color3.fromRGB(185, 185, 185)
+SecurityTitle.TextXAlignment = Enum.TextXAlignment.Left
+SecurityTitle.Parent = SecurityPanel
+
+local SecurityStatus = Instance.new("TextLabel")
+SecurityStatus.Size = UDim2.new(1, -10, 0, 18)
+SecurityStatus.Position = UDim2.new(0, 5, 0, 25)
+SecurityStatus.BackgroundTransparency = 1
+SecurityStatus.Font = Enum.Font.Code
+SecurityStatus.TextSize = 10
+SecurityStatus.TextXAlignment = Enum.TextXAlignment.Left
+SecurityStatus.Parent = SecurityPanel
+
+local SecurityLogButton = Instance.new("TextButton")
+SecurityLogButton.Size = UDim2.new(0, 75, 0, 20)
+SecurityLogButton.Position = UDim2.new(1, -80, 0, 4)
+SecurityLogButton.BackgroundColor3 = Color3.fromRGB(48, 48, 48)
+SecurityLogButton.BackgroundTransparency = 0.1
+SecurityLogButton.BorderSizePixel = 1
+SecurityLogButton.BorderColor3 = Color3.fromRGB(75, 75, 75)
+SecurityLogButton.Text = "LOG"
+SecurityLogButton.Font = Enum.Font.Code
+SecurityLogButton.TextSize = 10
+SecurityLogButton.TextColor3 = Color3.fromRGB(205, 205, 205)
+SecurityLogButton.Parent = SecurityPanel
+
+local UnreadBadge = Instance.new("TextLabel")
+UnreadBadge.Size = UDim2.new(0, 18, 0, 18)
+UnreadBadge.Position = UDim2.new(1, -88, 0, -6)
+UnreadBadge.BackgroundColor3 = Color3.fromRGB(220, 55, 55)
+UnreadBadge.BorderSizePixel = 1
+UnreadBadge.BorderColor3 = Color3.fromRGB(245, 95, 95)
+UnreadBadge.TextColor3 = Color3.fromRGB(255, 255, 255)
+UnreadBadge.Font = Enum.Font.Code
+UnreadBadge.TextSize = 10
+UnreadBadge.Text = ""
+UnreadBadge.Visible = false
+UnreadBadge.ZIndex = 10
+UnreadBadge.Parent = SecurityPanel
+
+local BadgeCorner = Instance.new("UICorner")
+BadgeCorner.CornerRadius = UDim.new(1, 0)
+BadgeCorner.Parent = UnreadBadge
+
+local SecurityHighlight = Instance.new("Frame")
+SecurityHighlight.Size = UDim2.new(0, 3, 1, 0)
+SecurityHighlight.Position = UDim2.new(0, 0, 0, 0)
+SecurityHighlight.BackgroundColor3 = Color3.fromRGB(220, 55, 55)
+SecurityHighlight.BorderSizePixel = 0
+SecurityHighlight.Visible = false
+SecurityHighlight.Parent = SecurityPanel
+
+local function updateSecurityStatus()
+	if ANTI_IP_LOG then
+		SecurityStatus.Text = "Anti IP Log Enabled"
+		SecurityStatus.TextColor3 = Color3.fromRGB(145, 200, 145)
+		AntiButton.Text = "ANTI IP LOG: ON"
+	else
+		SecurityStatus.Text = "Anti IP Log Disabled"
+		SecurityStatus.TextColor3 = Color3.fromRGB(200, 180, 125)
+		AntiButton.Text = "ANTI IP LOG: OFF"
+	end
+end
+
+local function updateUnread()
+	if SecurityUnread > 0 then
+		UnreadBadge.Visible = true
+
+		if SecurityUnread > 99 then
+			UnreadBadge.Text = "99+"
+		else
+			UnreadBadge.Text = tostring(SecurityUnread)
+		end
+
+		SecurityHighlight.Visible = true
+
+		SecurityLogButton.BackgroundColor3 = Color3.fromRGB(75, 45, 45)
+		SecurityLogButton.BorderColor3 = Color3.fromRGB(150, 65, 65)
+		SecurityLogButton.TextColor3 = Color3.fromRGB(255, 220, 220)
+	else
+		UnreadBadge.Visible = false
+		SecurityHighlight.Visible = false
+
+		SecurityLogButton.BackgroundColor3 = Color3.fromRGB(48, 48, 48)
+		SecurityLogButton.BorderColor3 = Color3.fromRGB(75, 75, 75)
+		SecurityLogButton.TextColor3 = Color3.fromRGB(205, 205, 205)
+	end
+end
+
+updateSecurityStatus()
+updateUnread()
+
+local function copy(value)
+	if not setclip then
+		return false
+	end
+
+	return pcall(function()
+		setclip(tostring(value))
+	end)
+end
+
+local function clearRight()
+	for _, v in ipairs(Right:GetChildren()) do
+		if v:IsA("GuiObject") and v ~= RightPadding and v ~= RightLayout then
+			v:Destroy()
+		end
+	end
+end
+
+local function addDetail(name, value)
+	local rawValue = value
+
+	if typeof(value) == "table" then
+		local success, encoded = pcall(function()
+			return HttpService:JSONEncode(value)
+		end)
+
+		rawValue = success and encoded or tostring(value)
+	end
+
+	rawValue = tostring(rawValue)
+
+	local Box = Instance.new("Frame")
+	Box.Size = UDim2.new(1, 0, 0, 82)
+	Box.BackgroundColor3 = Color3.fromRGB(34, 34, 34)
+	Box.BackgroundTransparency = 0.08
+	Box.BorderSizePixel = 1
+	Box.BorderColor3 = Color3.fromRGB(62, 62, 62)
+	Box.Parent = Right
+
+	local Header = Instance.new("TextLabel")
+	Header.Size = UDim2.new(1, -62, 0, 24)
+	Header.Position = UDim2.new(0, 7, 0, 3)
+	Header.BackgroundTransparency = 1
+	Header.Text = name
+	Header.Font = Enum.Font.Code
+	Header.TextSize = 12
+	Header.TextColor3 = Color3.fromRGB(150, 190, 150)
+	Header.TextXAlignment = Enum.TextXAlignment.Left
+	Header.Parent = Box
+
+	local Copy = Instance.new("TextButton")
+	Copy.Size = UDim2.new(0, 48, 0, 20)
+	Copy.Position = UDim2.new(1, -54, 0, 4)
+	Copy.BackgroundColor3 = Color3.fromRGB(48, 48, 48)
+	Copy.BackgroundTransparency = 0.1
+	Copy.BorderSizePixel = 1
+	Copy.BorderColor3 = Color3.fromRGB(75, 75, 75)
+	Copy.Text = "COPY"
+	Copy.Font = Enum.Font.Code
+	Copy.TextSize = 10
+	Copy.TextColor3 = Color3.fromRGB(200, 200, 200)
+	Copy.Parent = Box
+
+	Copy.MouseButton1Click:Connect(function()
+		if copy(rawValue) then
+			Copy.Text = "OK"
+
+			task.delay(0.8, function()
+				if Copy.Parent then
+					Copy.Text = "COPY"
+				end
+			end)
+		else
+			Copy.Text = "N/A"
+
+			task.delay(0.8, function()
+				if Copy.Parent then
+					Copy.Text = "COPY"
+				end
+			end)
+		end
+	end)
+
+	local Value = Instance.new("TextLabel")
+	Value.Size = UDim2.new(1, -14, 0, 50)
+	Value.Position = UDim2.new(0, 7, 0, 27)
+	Value.BackgroundTransparency = 1
+	Value.Text = rawValue
+	Value.Font = Enum.Font.Code
+	Value.TextSize = 11
+	Value.TextColor3 = Color3.fromRGB(205, 205, 205)
+	Value.TextXAlignment = Enum.TextXAlignment.Left
+	Value.TextYAlignment = Enum.TextYAlignment.Top
+	Value.TextWrapped = true
+	Value.TextTruncate = Enum.TextTruncate.AtEnd
+	Value.Parent = Box
+end
+
+local function showRequest(log)
+	SecurityViewing = false
+
+	clearRight()
+
+	addDetail("Method", log.Method)
+	addDetail("URL", log.Url)
+	addDetail("Headers", log.Headers or {})
+	addDetail("Body", log.Body or "nil")
+
+	if log.Response then
+		addDetail("Status", log.StatusCode or "nil")
+		addDetail("Response Headers", log.Response.Headers or {})
+		addDetail("Response Body", log.Response.Body or "nil")
+	else
+		addDetail("Result", "Request failed")
+	end
+
+	Right.CanvasSize = UDim2.new(
+		0,
+		0,
+		0,
+		RightLayout.AbsoluteContentSize.Y + 15
+	)
+end
+
+local function showSecurityLogs()
+	SecurityViewing = true
+	SecurityUnread = 0
+	updateUnread()
+
+	clearRight()
+
+	addDetail(
+		"Anti IP Log",
+		ANTI_IP_LOG
+			and "ENABLED (You must turn off Anti IP Log in order to find webhooks) (Use VPN)"
+			or "DISABLED"
+	)
+
+	if #SecurityLogs == 0 then
+		addDetail("Logs", "No requests inspected yet.")
+	else
+		for i = #SecurityLogs, 1, -1 do
+			local entry = SecurityLogs[i]
+
+			local text = "[" .. entry.Action .. "]\n"
+				.. "Source: " .. entry.Source .. "\n"
+				.. "Method: " .. entry.Method .. "\n"
+				.. "URL: " .. entry.Url
+
+			if entry.Match then
+				text = text .. "\nMatch: " .. entry.Match
+			end
+
+			addDetail("#" .. tostring(entry.Id), text)
+		end
+	end
+
+	Right.CanvasSize = UDim2.new(
+		0,
+		0,
+		0,
+		RightLayout.AbsoluteContentSize.Y + 15
+	)
+end
+
+local function addSecurityLog(action, source, method, url, matched)
+	SecurityCount += 1
+
+	local entry = {
+		Id = SecurityCount,
+		Action = action,
+		Source = source,
+		Method = method,
+		Url = url,
+		Match = matched
+	}
+
+	table.insert(SecurityLogs, entry)
+
+	if not SecurityViewing then
+		SecurityUnread += 1
+		updateUnread()
+	end
+
+	if REQUESTS_LOG then
+		if action == "BLOCKED" then
+			warn("[Anti IP Log] BLOCKED | " .. source .. " | " .. method .. " | " .. url)
+		else
+			print("[Anti IP Log] ALLOWED | " .. source .. " | " .. method .. " | " .. url)
+		end
+	end
+
+	if SecurityViewing then
+		task.defer(showSecurityLogs)
+	end
+end
+
+local function normalize(value)
+	local result = tostring(value or ""):lower()
+
+	for _ = 1, 3 do
+		local decoded = result:gsub("%%(%x%x)", function(hex)
+			return string.char(tonumber(hex, 16))
+		end)
+
+		if decoded == result then
+			break
+		end
+
+		result = decoded
+	end
+
+	result = result:gsub("\\/", "/")
+	result = result:gsub("%s+", "")
+
+	return result
+end
+
+local function containsPublicIPv4(value)
+	local text = tostring(value or "")
+
+	for a, b, c, d in text:gmatch("(%d+)%.(%d+)%.(%d+)%.(%d+)") do
+		a, b, c, d = tonumber(a), tonumber(b), tonumber(c), tonumber(d)
+
+		if a and b and c and d
+			and a >= 1 and a <= 223
+			and b >= 0 and b <= 255
+			and c >= 0 and c <= 255
+			and d >= 0 and d <= 255
+			and a ~= 10
+			and a ~= 127
+			and not (a == 192 and b == 168)
+			and not (a == 172 and b >= 16 and b <= 31)
+			and not (a == 169 and b == 254) then
+			return true, a .. "." .. b .. "." .. c .. "." .. d
+		end
+	end
+
+	return false, nil
+end
+
+local function isSuspicious(url)
+	local lower = normalize(url)
+
+	for _, pattern in ipairs(suspiciousPatterns) do
+		if string.find(lower, normalize(pattern), 1, true) then
+			return true, pattern
+		end
+	end
+
+	local pathPatterns = {
+		"/myip", "/my-ip", "/publicip", "/public-ip",
+		"/clientip", "/client-ip", "/remoteip", "/remote-ip",
+		"/checkip", "/check-ip", "/getip", "/get-ip",
+		"/whoami", "/webhook", "/webhooks"
+	}
+
+	for _, pattern in ipairs(pathPatterns) do
+		if string.find(lower, pattern, 1, true) then
+			return true, pattern
+		end
+	end
+
+	if string.find(lower, "discord", 1, true)
+		and string.find(lower, "webhook", 1, true) then
+		return true, "discord webhook"
+	end
+
+	return false, nil
+end
+
+local function inspectResponse(response)
+	if not INSPECT_RESPONSES or type(response) ~= "table" then
+		return false, nil
+	end
+
+	local body = response.Body or response.body or ""
+	body = tostring(body or "")
+
+	local lower = normalize(body)
+	local responsePatterns = {
+		"your ip",
+		"your_ip",
+		"your-ip",
+		"client ip",
+		"client_ip",
+		"client-ip",
+		"remote ip",
+		"remote_ip",
+		"remote-ip",
+		"public ip",
+		"public_ip",
+		"public-ip",
+		"ip address",
+		"ip_address",
+		"ip-address"
+	}
+
+	for _, pattern in ipairs(responsePatterns) do
+		if string.find(lower, pattern, 1, true) then
+			local hasIP, ip = containsPublicIPv4(body)
+			if hasIP then
+				return true, "Response exposes public IP: " .. ip
+			end
+			return true, pattern
+		end
+	end
+
+	return false, nil
+end
+
+local function inspectRequest(options, source)
+	local url
+	local method = "GET"
+
+	if typeof(options) == "string" then
+		url = options
+	elseif typeof(options) == "table" then
+		url = options.Url or options.URL or options.url
+		method = options.Method or options.method or "GET"
+	end
+
+	url = tostring(url or "UNKNOWN")
+	method = tostring(method)
+
+	local suspicious, matched = isSuspicious(url)
+
+	if suspicious and ANTI_IP_LOG then
+		addSecurityLog("BLOCKED", source, method, url, matched)
+		return true
+	end
+
+	addSecurityLog(
+		suspicious and "ALLOWED" or "ALLOWED",
+		source,
+		method,
+		url,
+		suspicious and matched or nil
+	)
+
+	return false
+end
+
+local function addRequest(log)
+	local Button = Instance.new("TextButton")
+	Button.Size = UDim2.new(1, 0, 0, 34)
+	Button.BackgroundColor3 = Color3.fromRGB(29, 29, 29)
+	Button.BackgroundTransparency = 0.05
+	Button.BorderSizePixel = 1
+	Button.BorderColor3 = Color3.fromRGB(52, 52, 52)
+	Button.Text = ""
+	Button.AutoButtonColor = false
+	Button.Parent = Left
+
+	local Text = Instance.new("TextLabel")
+	Text.Size = UDim2.new(1, -8, 1, 0)
+	Text.Position = UDim2.new(0, 6, 0, 0)
+	Text.BackgroundTransparency = 1
+	Text.Text = "[" .. tostring(log.Method) .. "] " .. tostring(log.Url)
+	Text.Font = Enum.Font.Code
+	Text.TextSize = 11
+	Text.TextColor3 = Color3.fromRGB(190, 190, 190)
+	Text.TextXAlignment = Enum.TextXAlignment.Left
+	Text.TextTruncate = Enum.TextTruncate.AtEnd
+	Text.Parent = Button
+
+	Button.MouseEnter:Connect(function()
+		Button.BackgroundColor3 = Color3.fromRGB(42, 42, 42)
+	end)
+
+	Button.MouseLeave:Connect(function()
+		Button.BackgroundColor3 = Color3.fromRGB(29, 29, 29)
+	end)
+
+	Button.MouseButton1Click:Connect(function()
+		showRequest(log)
+	end)
+end
+
+local function spy(params)
+	if inspectRequest(params, "request") then
+		return {
+			Success = false,
+			StatusCode = 403,
+			StatusMessage = "Blocked by Anti IP Log",
+			Body = ""
+		}
+	end
+
+	local success, result = pcall(function()
+		return OriginalRequest(params)
+	end)
+
+	if success and INSPECT_RESPONSES and type(result) == "table" then
+		local responseMatch, responseReason = inspectResponse(result)
+
+		if responseMatch then
+			local responseUrl = typeof(params) == "string"
+				and params
+				or typeof(params) == "table"
+					and (params.Url or params.URL or params.url or "")
+					or ""
+
+			local responseMethod = typeof(params) == "table"
+				and (params.Method or params.method or "GET")
+				or "GET"
+
+			addSecurityLog(
+				"RESPONSE MATCH",
+				"request",
+				tostring(responseMethod),
+				tostring(responseUrl),
+				responseReason
+			)
+		end
+	end
+
+	LogCount += 1
+
+	local response = nil
+
+	if success and type(result) == "table" then
+		response = result
+	end
+
+	local log = {
+		Id = LogCount,
+
+		Method = typeof(params) == "table"
+			and (params.Method or params.method or "GET")
+			or "GET",
+
+		Url = typeof(params) == "string"
+			and params
+			or typeof(params) == "table"
+				and (params.Url or params.URL or params.url or "")
+				or "",
+
+		Headers = typeof(params) == "table"
+			and (params.Headers or {})
+			or {},
+
+		Body = typeof(params) == "table"
+			and params.Body
+			or nil,
+
+		Response = response,
+		StatusCode = response and response.StatusCode or "Error"
+	}
+
+	table.insert(Logs, log)
+	addRequest(log)
+
+	if success then
+		return result
+	end
+
+	error(result, 0)
+end
+
+Env.request = spy
+
+if HookWatchdog then
+	task.spawn(function()
+		while Gui.Parent do
+			task.wait(1)
+
+			if typeof(Env.request) ~= "function" or Env.request == OriginalRequest then
+				Env.request = spy
+
+				addSecurityLog(
+					"HOOK RESTORED",
+					"request",
+					"HOOK",
+					"request",
+					"Request hook was replaced or removed"
+				)
+			end
+		end
+	end)
+end
+
+AntiButton.MouseButton1Click:Connect(function()
+	ANTI_IP_LOG = not ANTI_IP_LOG
+	updateSecurityStatus()
+	if SecurityViewing then
+		showSecurityLogs()
+	end
+end)
+
+SecurityLogButton.MouseButton1Click:Connect(function()
+	showSecurityLogs()
+end)
+
+local dragging = false
+local dragStart
+local startPosition
+
+Top.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		dragging = true
+		dragStart = input.Position
+		startPosition = Main.Position
+
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if not dragging then
+		return
+	end
+
+	if input.UserInputType ~= Enum.UserInputType.MouseMovement
+		and input.UserInputType ~= Enum.UserInputType.Touch then
+		return
+	end
+
+	local delta = input.Position - dragStart
+
+	Main.Position = UDim2.new(
+		startPosition.X.Scale,
+		startPosition.X.Offset + delta.X,
+		startPosition.Y.Scale,
+		startPosition.Y.Offset + delta.Y
+	)
+end)
+
+Close.MouseButton1Click:Connect(function()
+	Env.request = OriginalRequest
+	Gui:Destroy()
+end)
+
+LeftLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+	Left.CanvasSize = UDim2.new(
+		0,
+		0,
+		0,
+		LeftLayout.AbsoluteContentSize.Y + 10
+	)
+end)
+
+RightLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+	Right.CanvasSize = UDim2.new(
+		0,
+		0,
+		0,
+		RightLayout.AbsoluteContentSize.Y + 15
+	)
+end)
+
+print("SS loaded")
