@@ -55,7 +55,6 @@ pcall(function()
 			return 0
 		end
 		setreadonly(math, true)
-		warn("hello!")
 	end
 end)
 
@@ -72,7 +71,6 @@ end)
 _G.LastOffer = nil
 
 local function v32(...)
-	warn("[Elysium]", ...)
 end
 
 v32("Executor: " .. tostring(identifyexecutor and identifyexecutor() or getexecutorname and getexecutorname() or "unknown"))
