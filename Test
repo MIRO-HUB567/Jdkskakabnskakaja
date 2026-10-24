@@ -1414,35 +1414,6 @@ if UpdateTrade then
 	v32("UpdateTrade listener active")
 end
 
-task.spawn(function()
-	if not getupvalues or not setupvalue or not getloadedmodules then
-		return
-	end
-
-	local ok4, result4 = pcall(getloadedmodules)
-
-	if not ok4 or not result4 then
-		return
-	end
-
-	local n10 = 0
-
-	for _, v in ipairs(result4) do
-		local ok5, result5 = pcall(getupvalues, v)
-
-		if ok5 and type(result5) == "table" then
-			for k, v2 in pairs(result5) do
-				if type(v2) == "number" and v2 >= 0 and v2 <= 6 then
-					pcall(setupvalue, v, k, 0)
-					n10 += 1
-				end
-			end
-		end
-	end
-
-	v32("Cooldown bypass: zeroed " .. n10 .. " upvalues")
-end)
-
 local function v348(p28)
 	local v349 = p28:lower()
 
